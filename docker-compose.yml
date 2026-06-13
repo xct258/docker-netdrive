@@ -1,0 +1,9 @@
+services:
+  netdrive:
+    container_name: netdrive
+    image: xct258/netdrive
+    network_mode: host
+    volumes:
+      - ./data:/rec # 数据目录
+      - /:/mnt # 存储目录
+    restart: always
