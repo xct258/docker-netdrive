@@ -7,7 +7,7 @@
 # ============================================================
 
 # 工作目录（宿主机挂载目录）
-DRIVE_DIR=${DRIVE_DIR:-/rec}
+DRIVE_DIR=/rec
 
 # 日志文件路径
 LOG_FILE="${DRIVE_DIR}/log/container.log"
@@ -49,13 +49,13 @@ start_openlist() {
 
     # 启动 OpenList 服务
     if [ "$needs_init" = true ]; then
-        nohup "$binary" server --data "$data_dir" --no-prefix > /tmp/openlist_startup.log 2>&1 &
+        nohup "$binary" server --data "$data_dir" > /tmp/openlist_startup.log 2>&1 &
     else
-        nohup "$binary" server --data "$data_dir" --no-prefix > /dev/null 2>&1 &
+        nohup "$binary" server --data "$data_dir" > /dev/null 2>&1 &
     fi
 
     # 等待进程启动
-    local wait_seconds=15
+    local wait_seconds=10
     local pid=""
     local binary_name
     binary_name=$(basename "$binary")
