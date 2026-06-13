@@ -2,23 +2,14 @@
 
 # ============================================================
 # 容器构建初始化脚本
-# 功能：在 Docker 构建阶段执行，负责：
-#       1. 安装运行所需的基础工具
-#       2. 从 GitHub 获取最新版本的 7z、OpenList、FileBrowser
-#       3. 根据 CPU 架构自动选择对应的二进制文件
-#       4. 将运行时脚本（check-update.sh、start-services.sh）下载到 /usr/local/bin
-#       5. 写入构建时的版本信息到 /app/version.txt
 # ============================================================
 
-# GitHub 仓库地址（通过 Docker build --build-arg 传入）
+# GitHub 仓库地址（在构建文件指定即可）
 GITHUB_USER=${GITHUB_USER}
 GITHUB_REPO=${GITHUB_REPO}
 
 # --------------------------------------------------
 # 安装运行依赖工具
-# curl      - 用于调用 GitHub API
-# jq        - 用于解析 GitHub API 返回的 JSON 数据
-# wget      - 用于下载文件
 # --------------------------------------------------
 apt install -y curl jq wget
 
@@ -63,59 +54,59 @@ latest_filebrowser_x64_url=$(echo "$latest_release_filebrowser" | jq -r '.assets
 # ARM64 架构匹配 linux-arm64-filebrowser.tar.gz
 latest_filebrowser_arm64_url=$(echo "$latest_release_filebrowser" | jq -r '.assets[] | select(.name | test("linux-arm64-filebrowser.tar.gz")) | .browser_download_url')
 echo "[FileBrowser] 最新版本: ${version_filebrowser}"
-    # --------------------------------------------------
-    # 检测当前 CPU 架构，下载对应的二进制文件
-    # uname -m 返回值：
-    #   x86_64  - Intel/AMD 64位处理器
-    #   aarch64 - ARM 64位处理器（如树莓派、AWS Graviton）
-    # --------------------------------------------------
-    arch=$(uname -m)
-    echo "当前系统架构: ${arch}"
+# --------------------------------------------------
+# 检测当前 CPU 架构，下载对应的二进制文件
+# uname -m 返回值：
+#   x86_64  - Intel/AMD 64位处理器
+#   aarch64 - ARM 64位处理器（如树莓派、AWS Graviton）
+# --------------------------------------------------
+arch=$(uname -m)
+echo "当前系统架构: ${arch}"
 
-    if [[ $arch == *"x86_64"* ]]; then
-        # 下载 x86_64 架构的二进制文件
-        echo "下载 x86_64 架构的组件..."
-        wget -O /root/tmp/7zz.tar.xz "$latest_7z_x64_url"
-        wget -O /root/tmp/openlist.tar.gz "$latest_openlist_x64_url"
-        wget -O /root/tmp/filebrowser.tar.gz "$latest_filebrowser_x64_url"
-    elif [[ $arch == *"aarch64"* ]]; then
-        # 下载 ARM64 架构的二进制文件
-        echo "下载 ARM64 架构的组件..."
-        wget -O /root/tmp/7zz.tar.xz "$latest_7z_arm64_url"
-        wget -O /root/tmp/openlist.tar.gz "$latest_openlist_arm64_url"
-        wget -O /root/tmp/filebrowser.tar.gz "$latest_filebrowser_arm64_url"
-    fi
+if [[ $arch == *"x86_64"* ]]; then
+    # 下载 x86_64 架构的二进制文件
+    echo "下载 x86_64 架构的组件..."
+    wget -O /root/tmp/7zz.tar.xz "$latest_7z_x64_url"
+    wget -O /root/tmp/openlist.tar.gz "$latest_openlist_x64_url"
+    wget -O /root/tmp/filebrowser.tar.gz "$latest_filebrowser_x64_url"
+elif [[ $arch == *"aarch64"* ]]; then
+    # 下载 ARM64 架构的二进制文件
+    echo "下载 ARM64 架构的组件..."
+    wget -O /root/tmp/7zz.tar.xz "$latest_7z_arm64_url"
+    wget -O /root/tmp/openlist.tar.gz "$latest_openlist_arm64_url"
+    wget -O /root/tmp/filebrowser.tar.gz "$latest_filebrowser_arm64_url"
+fi
 
-    # --------------------------------------------------
-    # 安装压缩/解压工具
-    # tar     - 处理 .tar.gz 格式
-    # xz-utils - 处理 .tar.xz 格式（7z 的压缩格式）
-    # --------------------------------------------------
-    apt install -y tar xz-utils
+# --------------------------------------------------
+# 安装压缩/解压工具
+# tar     - 处理 .tar.gz 格式
+# xz-utils - 处理 .tar.xz 格式（7z 的压缩格式）
+# --------------------------------------------------
+apt install -y tar xz-utils
 
-    # --------------------------------------------------
-    # 安装 7z（7-Zip 命令行版本）
-    # 解压后重命名为 7zz 并移动到 /bin 目录
-    # --------------------------------------------------
-    echo "正在安装 7z..."
-    tar -xf /root/tmp/7zz.tar.xz -C /root/tmp
-    chmod +x /root/tmp/7zz
-    mv /root/tmp/7zz /bin/7zz
-    echo "7z 安装完成"
+# --------------------------------------------------
+# 安装 7z（7-Zip 命令行版本）
+# 解压后重命名为 7zz 并移动到 /bin 目录
+# --------------------------------------------------
+echo "正在安装 7z..."
+tar -xf /root/tmp/7zz.tar.xz -C /root/tmp
+chmod +x /root/tmp/7zz
+mv /root/tmp/7zz /bin/7zz
+echo "7z 安装完成"
 
-    # --------------------------------------------------
-    # 安装 OpenList 和 FileBrowser
-    # 分别解压到 /app/openlist 和 /app/filebrowser
-    # --------------------------------------------------
-    echo "正在安装 OpenList..."
-    mkdir -p /app/openlist
-    tar -xf /root/tmp/openlist.tar.gz -C /app/openlist
-    echo "OpenList 安装完成"
+# --------------------------------------------------
+# 安装 OpenList 和 FileBrowser
+# 分别解压到 /app/openlist 和 /app/filebrowser
+# --------------------------------------------------
+echo "正在安装 OpenList..."
+mkdir -p /app/openlist
+tar -xf /root/tmp/openlist.tar.gz -C /app/openlist
+echo "OpenList 安装完成"
 
-    echo "正在安装 FileBrowser..."
-    mkdir -p /app/filebrowser
-    tar -xf /root/tmp/filebrowser.tar.gz -C /app/filebrowser
-    echo "FileBrowser 安装完成"
+echo "正在安装 FileBrowser..."
+mkdir -p /app/filebrowser
+tar -xf /root/tmp/filebrowser.tar.gz -C /app/filebrowser
+echo "FileBrowser 安装完成"
 
 # --------------------------------------------------
 # 下载运行时脚本到 /usr/local/bin
