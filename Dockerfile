@@ -17,8 +17,8 @@ FROM debian
 # GITHUB_REPO - GitHub 仓库名
 # 用于构建时从 GitHub 下载 init-components.sh 等脚本
 # --------------------------------------------------
-ARG GITHUB_USER=
-ARG GITHUB_REPO=
+ARG GITHUB_USER=xct258
+ARG GITHUB_REPO=docker-netdrive
 
 # 将构建参数传递为环境变量，供 init-components.sh 等脚本使用
 ENV GITHUB_USER=${GITHUB_USER}
