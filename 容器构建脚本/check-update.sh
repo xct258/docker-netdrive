@@ -283,7 +283,7 @@ check_rclone_binary() {
 
     # 解压并提取 rclone 二进制文件
     mkdir -p /tmp/update/rclone_extract
-    if ! unzip -q "/tmp/update/rclone.zip" -d "/tmp/update/rclone_extract"; then
+    if ! 7zz x "/tmp/update/rclone.zip" -o/tmp/update/rclone_extract -y > /dev/null 2>&1; then
         log "[${name}] 解压失败，跳过更新"
         rm -rf /tmp/update
         return 1

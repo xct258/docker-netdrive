@@ -131,9 +131,8 @@ echo "FileBrowser 安装完成"
 # 需要从子目录中提取 rclone 二进制文件到 /usr/local/bin
 # --------------------------------------------------
 echo "正在安装 rclone..."
-apt install -y unzip > /dev/null 2>&1
 mkdir -p /root/tmp/rclone_extract
-unzip -q /root/tmp/rclone.zip -d /root/tmp/rclone_extract
+7zz x /root/tmp/rclone.zip -o/root/tmp/rclone_extract -y > /dev/null
 # 找到解压后的 rclone 二进制文件并移动到 /usr/local/bin
 find /root/tmp/rclone_extract -name "rclone" -type f -exec mv {} /usr/local/bin/rclone \;
 chmod +x /usr/local/bin/rclone
