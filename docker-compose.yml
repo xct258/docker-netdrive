@@ -3,6 +3,8 @@ services:
     container_name: netdrive
     image: xct258/netdrive
     network_mode: host
+    environment:
+      - GITHUB_TOKEN= # GitHub 令牌，用于从私有仓库下载 rclone 配置
     volumes:
       - ./data:/rec # 数据目录
       - /:/mnt # 存储目录
