@@ -54,6 +54,21 @@ latest_filebrowser_x64_url=$(echo "$latest_release_filebrowser" | jq -r '.assets
 # ARM64 架构匹配 linux-arm64-filebrowser.tar.gz
 latest_filebrowser_arm64_url=$(echo "$latest_release_filebrowser" | jq -r '.assets[] | select(.name | test("linux-arm64-filebrowser.tar.gz")) | .browser_download_url')
 echo "[FileBrowser] 最新版本: ${version_filebrowser}"
+
+# --------------------------------------------------
+# 从 GitHub API 获取 rclone 最新版本信息
+# 仓库：rclone/rclone
+# 获取 x86_64 和 ARM64 两种架构的下载链接
+# --------------------------------------------------
+echo "[rclone] 正在获取最新版本信息..."
+latest_release_rclone=$(curl -s https://api.github.com/repos/rclone/rclone/releases/latest)
+version_rclone=$(echo "$latest_release_rclone" | jq -r '.tag_name' | sed 's/^v//')
+# x86_64 架构匹配 linux-amd64.zip
+latest_rclone_x64_url=$(echo "$latest_release_rclone" | jq -r '.assets[] | select(.name | test("linux-amd64.zip")) | .browser_download_url')
+# ARM64 架构匹配 linux-arm64.zip
+latest_rclone_arm64_url=$(echo "$latest_release_rclone" | jq -r '.assets[] | select(.name | test("linux-arm64.zip")) | .browser_download_url')
+echo "[rclone] 最新版本: ${version_rclone}"
+
 # --------------------------------------------------
 # 检测当前 CPU 架构，下载对应的二进制文件
 # uname -m 返回值：
@@ -69,12 +84,14 @@ if [[ $arch == *"x86_64"* ]]; then
     wget -O /root/tmp/7zz.tar.xz "$latest_7z_x64_url"
     wget -O /root/tmp/openlist.tar.gz "$latest_openlist_x64_url"
     wget -O /root/tmp/filebrowser.tar.gz "$latest_filebrowser_x64_url"
+    wget -O /root/tmp/rclone.zip "$latest_rclone_x64_url"
 elif [[ $arch == *"aarch64"* ]]; then
     # 下载 ARM64 架构的二进制文件
     echo "下载 ARM64 架构的组件..."
     wget -O /root/tmp/7zz.tar.xz "$latest_7z_arm64_url"
     wget -O /root/tmp/openlist.tar.gz "$latest_openlist_arm64_url"
     wget -O /root/tmp/filebrowser.tar.gz "$latest_filebrowser_arm64_url"
+    wget -O /root/tmp/rclone.zip "$latest_rclone_arm64_url"
 fi
 
 # --------------------------------------------------
@@ -109,6 +126,20 @@ tar -xf /root/tmp/filebrowser.tar.gz -C /app/filebrowser
 echo "FileBrowser 安装完成"
 
 # --------------------------------------------------
+# 安装 rclone
+# rclone 的 tar.gz 解压后为 rclone-<version>-linux-<arch>/ 目录
+# 需要从子目录中提取 rclone 二进制文件到 /usr/local/bin
+# --------------------------------------------------
+echo "正在安装 rclone..."
+mkdir -p /root/tmp/rclone_extract
+unzip -q /root/tmp/rclone.zip -d /root/tmp/rclone_extract
+# 找到解压后的 rclone 二进制文件并移动到 /usr/local/bin
+find /root/tmp/rclone_extract -name "rclone" -type f -exec mv {} /usr/local/bin/rclone \;
+chmod +x /usr/local/bin/rclone
+rm -rf /root/tmp/rclone_extract
+echo "rclone 安装完成 ($(rclone version | head -1))"
+
+# --------------------------------------------------
 # 下载运行时脚本到 /usr/local/bin
 # 这些脚本在容器启动时被 start.sh 调用
 # --------------------------------------------------
@@ -128,6 +159,7 @@ echo "运行时脚本下载完成"
 #   VERSION_7Z          - 7z 版本号
 #   VERSION_OPENLIST    - OpenList 版本号
 #   VERSION_FILEBROWSER - FileBrowser 版本号
+#   VERSION_RCLONE      - rclone 版本号
 #   LAST_CHECK          - 上次检查更新时间（运行时填充）
 #   UPDATED_OPENLIST    - OpenList 最后更新时间（运行时填充）
 #   UPDATED_FILEBROWSER - FileBrowser 最后更新时间（运行时填充）
@@ -147,6 +179,9 @@ VERSION_OPENLIST=${version_openlist}
 # FileBrowser 版本
 VERSION_FILEBROWSER=${version_filebrowser}
 
+# rclone 版本
+VERSION_RCLONE=${version_rclone}
+
 # 上次检查时间
 LAST_CHECK=
 
@@ -161,4 +196,5 @@ echo "  构建时间: ${build_date}"
 echo "  7z: ${version_7z}"
 echo "  OpenList: ${version_openlist}"
 echo "  FileBrowser: ${version_filebrowser}"
+echo "  rclone: ${version_rclone}"
 echo "=========================================="
