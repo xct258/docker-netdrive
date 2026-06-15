@@ -31,7 +31,7 @@ console() { echo "$(date '+%Y-%m-%d %H:%M:%S') $@"; log "$@"; }
 # 初始化工作目录
 # 创建 OpenList 和 FileBrowser 的持久化数据目录
 # --------------------------------------------------
-mkdir -p ${DRIVE_DIR}/openlist ${DRIVE_DIR}/filebrowser
+mkdir -p ${DRIVE_DIR}/openlist ${DRIVE_DIR}/filebrowser ${DRIVE_DIR}/rclone
 
 # --------------------------------------------------
 # 首次启动时，将构建时写入的版本信息复制到工作目录
@@ -40,6 +40,45 @@ mkdir -p ${DRIVE_DIR}/openlist ${DRIVE_DIR}/filebrowser
 if [ -f /app/version.txt ] && [ ! -f ${DRIVE_DIR}/version.txt ]; then
     cp /app/version.txt ${DRIVE_DIR}/version.txt
     log "已从构建镜像初始化版本信息"
+fi
+
+# --------------------------------------------------
+# 从私有仓库下载 rclone 配置文件
+# 需要设置 GITHUB_TOKEN 环境变量以访问私有仓库
+# 下载后持久化到 /rec/rclone/，并通过符号链接使 rclone 可读取
+# --------------------------------------------------
+RCLONE_CONF_URL="https://raw.githubusercontent.com/xct258/Documentation/main/rclone/rclone.conf"
+
+if [ -f ${DRIVE_DIR}/rclone/rclone.conf ]; then
+    # 持久化文件已存在，只需确保符号链接正确
+    log "rclone 配置文件已存在"
+else
+    # 首次部署: 尝试从私有仓库下载配置文件
+    if [ -n "$GITHUB_TOKEN" ]; then
+        log "正在从私有仓库下载 rclone 配置文件..."
+        if curl -sf -H "Authorization: Bearer ${GITHUB_TOKEN}" "$RCLONE_CONF_URL" -o ${DRIVE_DIR}/rclone/rclone.conf; then
+            log "rclone 配置文件下载成功"
+            # 更新 version.txt 中的配置文件哈希
+            NEW_HASH=$(sha256sum ${DRIVE_DIR}/rclone/rclone.conf | cut -d' ' -f1)
+            if grep -q "^CONFIG_RCLONE_HASH=" "${DRIVE_DIR}/version.txt" 2>/dev/null; then
+                sed -i "s|^CONFIG_RCLONE_HASH=.*|CONFIG_RCLONE_HASH=${NEW_HASH}|" "${DRIVE_DIR}/version.txt"
+            else
+                echo "CONFIG_RCLONE_HASH=${NEW_HASH}" >> "${DRIVE_DIR}/version.txt"
+            fi
+        else
+            console "rclone 配置文件下载失败，请检查 GITHUB_TOKEN 是否有效"
+        fi
+    else
+        log "GITHUB_TOKEN 未设置，跳过 rclone 配置文件下载（rclone 可能无法连接私有存储）"
+    fi
+fi
+
+# 确保符号链接指向持久化文件
+if [ -f ${DRIVE_DIR}/rclone/rclone.conf ]; then
+    rm -f /root/.config/rclone/rclone.conf
+    mkdir -p /root/.config/rclone
+    ln -sf ${DRIVE_DIR}/rclone/rclone.conf /root/.config/rclone/rclone.conf
+    log "rclone 配置符号链接已就绪"
 fi
 
 log "=========================================="
@@ -90,6 +129,12 @@ while true; do
                     sleep 2
                     bash ${DRIVE_START_SH_DIR}/start-services.sh filebrowser
                     log "  FileBrowser 已重启"
+                    ;;
+                Rclone)
+                    log "  rclone 二进制已更新至最新版本 (无需重启)"
+                    ;;
+                RcloneConfig)
+                    log "  rclone 配置文件已更新至最新版本 (无需重启)"
                     ;;
             esac
         done < /tmp/.updated_list
