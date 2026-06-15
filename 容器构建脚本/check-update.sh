@@ -19,7 +19,7 @@ mkdir -p "$(dirname "$LOG_FILE")"
 # console() 同时输出到 stdout 和日志文件
 # --------------------------------------------------
 log()     { echo "$(date '+%Y-%m-%d %H:%M:%S') [check-update] $*" >> "$LOG_FILE"; }
-console() { echo "[check-update] $@"; log "$@"; }
+console() { echo "$(date '+%Y-%m-%d %H:%M:%S') [check-update] $@"; log "$@"; }
 
 # --------------------------------------------------
 # 版本比较函数

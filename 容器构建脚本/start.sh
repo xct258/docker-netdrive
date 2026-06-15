@@ -25,7 +25,7 @@ mkdir -p "$(dirname "$LOG_FILE")"
 # console() 同时输出到 docker logs 和日志文件
 # --------------------------------------------------
 log()     { echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$LOG_FILE"; }
-console() { echo "$@"; log "$@"; }
+console() { echo "$(date '+%Y-%m-%d %H:%M:%S') $@"; log "$@"; }
 
 # --------------------------------------------------
 # 初始化工作目录
@@ -43,7 +43,7 @@ if [ -f /app/version.txt ] && [ ! -f ${DRIVE_DIR}/version.txt ]; then
 fi
 
 log "=========================================="
-log "  首次启动，检查组件更新..."
+log "  容器启动，检查组件更新..."
 log "=========================================="
 bash ${DRIVE_START_SH_DIR}/check-update.sh
 
@@ -52,10 +52,10 @@ log "  正在启动服务..."
 log "=========================================="
 bash ${DRIVE_START_SH_DIR}/start-services.sh
 
-console "=========================================="
-console "  所有服务已启动，每 15 天自动检查更新。"
-console "  日志文件: ${LOG_FILE}"
-console "=========================================="
+log "=========================================="
+log "  服务启动流程结束，进入定期检查模式。"
+log "  日志文件: ${LOG_FILE}"
+log "=========================================="
 
 # --------------------------------------------------
 # 进入循环检查模式
@@ -73,23 +73,23 @@ while true; do
     bash ${DRIVE_START_SH_DIR}/check-update.sh
 
     if [ $? -eq 2 ]; then
-        console "有组件已更新，正在重启已更新的服务..."
+        log "有组件已更新，正在重启已更新的服务..."
 
         while IFS= read -r component; do
             case "$component" in
                 OpenList)
-                    console "  重启 OpenList..."
+                    log "  重启 OpenList..."
                     pkill -f "/app/openlist/openlist" 2>/dev/null
                     sleep 2
                     bash ${DRIVE_START_SH_DIR}/start-services.sh openlist
-                    console "  OpenList 已重启"
+                    log "  OpenList 已重启"
                     ;;
                 FileBrowser)
-                    console "  重启 FileBrowser..."
+                    log "  重启 FileBrowser..."
                     pkill -f "/app/filebrowser/filebrowser" 2>/dev/null
                     sleep 2
                     bash ${DRIVE_START_SH_DIR}/start-services.sh filebrowser
-                    console "  FileBrowser 已重启"
+                    log "  FileBrowser 已重启"
                     ;;
             esac
         done < /tmp/.updated_list
